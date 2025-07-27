@@ -8,6 +8,8 @@ const app = express();
 const PORT = 3022;
 const isDev = process.argv.includes('--dev');
 
+const PREFIX = '/avibase-mcp';
+
 // Initialize the bird query engine
 let birdEngine;
 
@@ -92,8 +94,10 @@ function paginateResults(results, page = 1, limit = 50) {
 
 // API Routes
 
+const router = express.Router();
+
 // Root endpoint
-app.get('/', (req, res) => {
+router.get('/', (req, res) => {
     res.json({
         name: '🦅 Bird Data JSONata Query API',
         version: '1.0.0',
@@ -117,7 +121,7 @@ app.get('/', (req, res) => {
 });
 
 // Health check
-app.get('/api/health', (req, res) => {
+router.get('/api/health', (req, res) => {
     res.json(formatResponse({
         status: 'healthy',
         uptime: process.uptime(),
@@ -127,7 +131,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // API Documentation
-app.get('/api/docs', (req, res) => {
+router.get('/api/docs', (req, res) => {
     res.json({
         name: 'Bird Data Query API Documentation',
         version: '1.0.0',
@@ -215,7 +219,7 @@ app.get('/api/docs', (req, res) => {
 });
 
 // Dataset statistics
-app.get('/api/stats', async (req, res) => {
+router.get('/api/stats', async (req, res) => {
     try {
         const stats = await birdEngine.getDatasetStats();
         res.json(formatResponse(stats, 'Dataset statistics retrieved successfully'));
@@ -226,7 +230,7 @@ app.get('/api/stats', async (req, res) => {
 });
 
 // Search birds by name
-app.get('/api/search', async (req, res) => {
+router.get('/api/search', async (req, res) => {
     try {
         const { q, exact = 'false', page = 1, limit = 50 } = req.query;
         
@@ -250,7 +254,7 @@ app.get('/api/search', async (req, res) => {
 });
 
 // Get birds by taxonomy
-app.get('/api/taxonomy/:level/:value', async (req, res) => {
+router.get('/api/taxonomy/:level/:value', async (req, res) => {
     try {
         const { level, value } = req.params;
         const { page = 1, limit = 50 } = req.query;
@@ -270,7 +274,7 @@ app.get('/api/taxonomy/:level/:value', async (req, res) => {
 });
 
 // Get birds by conservation status
-app.get('/api/conservation/:category', async (req, res) => {
+router.get('/api/conservation/:category', async (req, res) => {
     try {
         const { category } = req.params;
         const { page = 1, limit = 50 } = req.query;
@@ -290,7 +294,7 @@ app.get('/api/conservation/:category', async (req, res) => {
 });
 
 // Get birds by geographic range
-app.get('/api/range', async (req, res) => {
+router.get('/api/range', async (req, res) => {
     try {
         const { region, page = 1, limit = 50 } = req.query;
         
@@ -313,7 +317,7 @@ app.get('/api/range', async (req, res) => {
 });
 
 // Get extinct species
-app.get('/api/extinct', async (req, res) => {
+router.get('/api/extinct', async (req, res) => {
     try {
         const { page = 1, limit = 50 } = req.query;
 
@@ -332,7 +336,7 @@ app.get('/api/extinct', async (req, res) => {
 });
 
 // Get birds by authority
-app.get('/api/authority', async (req, res) => {
+router.get('/api/authority', async (req, res) => {
     try {
         const { name, page = 1, limit = 50 } = req.query;
         
@@ -355,7 +359,7 @@ app.get('/api/authority', async (req, res) => {
 });
 
 // Get random sample
-app.get('/api/random', async (req, res) => {
+router.get('/api/random', async (req, res) => {
     try {
         const { count = 10 } = req.query;
         const sampleCount = Math.min(parseInt(count), 100); // Limit to 100 for performance
@@ -373,7 +377,7 @@ app.get('/api/random', async (req, res) => {
 });
 
 // Get detailed bird report
-app.get('/api/bird/:scientificName', async (req, res) => {
+router.get('/api/bird/:scientificName', async (req, res) => {
     try {
         const { scientificName } = req.params;
         const decodedName = decodeURIComponent(scientificName);
@@ -392,7 +396,7 @@ app.get('/api/bird/:scientificName', async (req, res) => {
 });
 
 // Custom query with filters
-app.post('/api/custom', async (req, res) => {
+router.post('/api/custom', async (req, res) => {
     try {
         const { filters, page = 1, limit = 50 } = req.body;
         
@@ -415,7 +419,7 @@ app.post('/api/custom', async (req, res) => {
 });
 
 // Raw JSONata query
-app.post('/api/query', async (req, res) => {
+router.post('/api/query', async (req, res) => {
     try {
         const { query, page = 1, limit = 50 } = req.body;
         
@@ -446,7 +450,7 @@ app.post('/api/query', async (req, res) => {
 });
 
 // Get unique values for a field
-app.get('/api/unique/:field', async (req, res) => {
+router.get('/api/unique/:field', async (req, res) => {
     try {
         const { field } = req.params;
         const { page = 1, limit = 100 } = req.query;
@@ -464,6 +468,8 @@ app.get('/api/unique/:field', async (req, res) => {
         res.status(500).json(formatError('Unique values query failed', 500, error.message));
     }
 });
+
+app.use(PREFIX, router);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
